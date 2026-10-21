@@ -145,7 +145,7 @@ pub fn get_text() -> Option<String> {
     unsafe {
         let h = GetClipboardData(CF_UNICODETEXT.0 as u32).ok()?;
         let bytes = read_global(h)?;
-        let units: Vec<u16> = bytes.chunks_exact(2).map(|b| u16::from_le_bytes([b[0], b[1]])).take_while(|u| *u != 0).collect();
+        let units: Vec<u16> = bytes.as_chunks::<2>().0.iter().map(|b| u16::from_le_bytes(*b)).take_while(|u| *u != 0).collect();
         Some(String::from_utf16_lossy(&units).replace("\r\n", "\n"))
     }
 }

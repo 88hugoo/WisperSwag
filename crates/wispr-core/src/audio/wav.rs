@@ -72,14 +72,16 @@ pub fn decode_wav(bytes: &[u8]) -> Option<(Vec<f32>, u32)> {
         return None;
     }
     let samples: Vec<f32> = match (format, bits) {
-        (1, 16) => data.chunks_exact(2).map(|b| i16::from_le_bytes([b[0], b[1]]) as f32 / 32768.0).collect(),
+        (1, 16) => data.as_chunks::<2>().0.iter().map(|b| i16::from_le_bytes(*b) as f32 / 32768.0).collect(),
         (1, 8) => data.iter().map(|b| (*b as f32 - 128.0) / 128.0).collect(),
         (1, 24) => data
-            .chunks_exact(3)
+            .as_chunks::<3>()
+            .0
+            .iter()
             .map(|b| (i32::from_le_bytes([0, b[0], b[1], b[2]]) >> 8) as f32 / 8_388_608.0)
             .collect(),
-        (1, 32) => data.chunks_exact(4).map(|b| i32::from_le_bytes([b[0], b[1], b[2], b[3]]) as f32 / 2_147_483_648.0).collect(),
-        (3, 32) => data.chunks_exact(4).map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]])).collect(),
+        (1, 32) => data.as_chunks::<4>().0.iter().map(|b| i32::from_le_bytes(*b) as f32 / 2_147_483_648.0).collect(),
+        (3, 32) => data.as_chunks::<4>().0.iter().map(|b| f32::from_le_bytes(*b)).collect(),
         _ => return None,
     };
     Some((super::dsp::downmix(&samples, channels as usize), rate))

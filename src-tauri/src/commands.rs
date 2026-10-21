@@ -998,7 +998,7 @@ pub fn pill_preview(state: S, phase: String, theme: String, scale: f32) -> PillP
     a.clock = 1.3;
     let f = r.render(&st, &style, &a);
     let mut rgba = f.rgba;
-    for px in rgba.chunks_exact_mut(4) {
+    for px in rgba.as_chunks_mut::<4>().0 {
         let a = px[3] as f32 / 255.0;
         if a > 0.0 {
             for c in &mut px[..3] {
