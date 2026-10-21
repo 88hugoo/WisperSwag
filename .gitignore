@@ -8,3 +8,8 @@ node_modules/
 /.vite
 /test-output
 /crates/*/test-output
+.env
+.env.*
+*.pem
+*.key
+*.pfx
