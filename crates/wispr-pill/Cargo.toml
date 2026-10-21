@@ -1,0 +1,8 @@
+[package]
+name = "wispr-pill"
+description = "Renderizado de la barra flotante de Wispr Swag (independiente de la plataforma)."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
