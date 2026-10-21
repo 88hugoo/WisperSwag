@@ -3,15 +3,19 @@ name: CI
 on:
   push:
     branches: [main, "claude/**"]
+    paths-ignore: ["**/*.md", "docs/**"]
   pull_request:
+    paths-ignore: ["**/*.md", "docs/**"]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# En las ramas, una ejecución nueva espera a que termine la anterior (no la
+# cancela); en las solicitudes de cambios, solo cuenta la última.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CARGO_TERM_COLOR: always
