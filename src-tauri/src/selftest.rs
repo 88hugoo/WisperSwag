@@ -101,6 +101,8 @@ fn parse(args: &[String]) -> Options {
 }
 
 pub fn run(args: &[String]) -> i32 {
+    #[cfg(windows)]
+    win::attach_console();
     let opts = parse(args);
     let mut r = Report {
         version: wispr_core::VERSION.into(),
@@ -358,6 +360,18 @@ mod win {
     /// Marca de las pulsaciones de la autoprueba: distinta de la de la aplicación
     /// para que el gancho de teclado las procese como si fueran del usuario.
     const TEST_TAG: usize = 0x5445_5354;
+
+    /// La versión final no tiene consola propia: si se lanza desde una terminal sin
+    /// redirigir la salida, se escribe en la consola de esa terminal.
+    pub fn attach_console() {
+        use windows::Win32::System::Console::{AttachConsole, GetStdHandle, ATTACH_PARENT_PROCESS, STD_OUTPUT_HANDLE};
+        unsafe {
+            let has_output = GetStdHandle(STD_OUTPUT_HANDLE).is_ok_and(|h| !h.is_invalid() && !h.0.is_null());
+            if !has_output {
+                let _ = AttachConsole(ATTACH_PARENT_PROCESS);
+            }
+        }
+    }
 
     pub fn run(r: &mut Report, opts: &Options) {
         r.info("Windows", windows_version());

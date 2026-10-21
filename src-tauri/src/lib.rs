@@ -41,6 +41,11 @@ pub fn shutdown(app: &AppHandle) {
 }
 
 fn setup(app: &mut tauri::App, paths: AppPaths, minimized: bool) -> Result<(), Box<dyn std::error::Error>> {
+    // `--quit` y `--close-window` se dirigen a una instancia ya abierta; si no la
+    // hay (esta es la primera), no hay nada que hacer.
+    if std::env::args().any(|a| a == "--quit" || a == "--close-window") {
+        std::process::exit(0);
+    }
     let handle = app.handle().clone();
     let settings = Settings::load(&paths);
     let first_run = !settings.onboarding_done;
@@ -140,8 +145,18 @@ pub fn run() {
     let _log_guard = logging::init(&paths);
 
     let app = tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            hub::open(app, None);
+        // Una segunda ejecución no abre otra copia: se comunica con la abierta.
+        //   (sin argumentos)  muestra la ventana principal
+        //   --close-window    cierra la ventana principal y libera su memoria
+        //   --quit            cierra Wispr Swag de forma ordenada (lo usa el instalador)
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            if argv.iter().any(|a| a == "--quit") {
+                shutdown(app);
+            } else if argv.iter().any(|a| a == "--close-window") {
+                hub::close(app);
+            } else {
+                hub::open(app, None);
+            }
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())

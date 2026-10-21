@@ -14,6 +14,16 @@ pub fn open(app: &AppHandle, route: Option<&str>) {
     let _ = app.run_on_main_thread(move || open_on_main(&handle, route));
 }
 
+/// Cierra la ventana principal y libera su memoria (WebView2), sin cerrar la aplicación.
+pub fn close(app: &AppHandle) {
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        if let Some(w) = handle.get_webview_window(LABEL) {
+            let _ = w.destroy();
+        }
+    });
+}
+
 fn open_on_main(app: &AppHandle, route: Option<String>) {
     if let Some(w) = app.get_webview_window(LABEL) {
         let _ = w.unminimize();

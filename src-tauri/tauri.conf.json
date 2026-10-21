@@ -19,7 +19,10 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi"],
+    "targets": [
+      "nsis",
+      "msi"
+    ],
     "publisher": "Wispr Swag",
     "category": "Productivity",
     "shortDescription": "Dictado por voz para todo Windows",
@@ -33,16 +36,26 @@
       "icons/icon.ico"
     ],
     "windows": {
-      "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true },
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["Spanish", "English"],
+        "languages": [
+          "Spanish",
+          "English"
+        ],
         "displayLanguageSelector": false,
         "startMenuFolder": "Wispr Swag",
-        "installerIcon": "icons/icon.ico"
+        "installerIcon": "icons/icon.ico",
+        "installerHooks": "windows/hooks.nsh"
       },
       "wix": {
-        "language": ["es-ES", "en-US"]
+        "language": [
+          "es-ES",
+          "en-US"
+        ]
       }
     }
   }

@@ -1,0 +1,177 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  PARAKEET: sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8
+  PARAKEET_URL: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2
+
+jobs:
+  linux:
+    name: Linux · comprobaciones y pruebas
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Dependencias del sistema (WebKitGTK, ALSA)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libasound2-dev libssl-dev pkg-config
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Comprobación de tipos de la interfaz
+        run: npm run check
+      - name: Compilación de la interfaz
+        run: npm run build
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Pruebas
+        run: cargo test --workspace
+
+      - name: Modelo de voz (caché)
+        uses: actions/cache@v4
+        with:
+          path: models
+          key: ${{ env.PARAKEET }}
+      - name: Descargar Parakeet V3
+        run: |
+          if [ ! -d "models/$PARAKEET" ]; then
+            mkdir -p models
+            curl -fsSL "$PARAKEET_URL" | tar -xj -C models
+          fi
+      - name: Prueba de extremo a extremo con el modelo real
+        env:
+          WISPR_TEST_MODELS: ${{ github.workspace }}/models
+        run: cargo test -p wispr-core --release --test e2e_local -- --nocapture
+
+  windows:
+    name: Windows · instalador, autoprueba y consumo
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Compilación de la interfaz
+        run: npm run build
+
+      - name: Pruebas
+        run: cargo test --workspace
+
+      - name: Compilar el instalador (NSIS y MSI)
+        run: npx tauri build --ci
+
+      - name: Publicar el instalador
+        uses: actions/upload-artifact@v4
+        with:
+          name: wispr-swag-windows
+          path: |
+            target/release/bundle/nsis/*.exe
+            target/release/bundle/msi/*.msi
+          if-no-files-found: error
+
+      - name: Modelo de voz (caché)
+        uses: actions/cache@v4
+        with:
+          path: models
+          key: ${{ env.PARAKEET }}-win
+      - name: Descargar Parakeet V3
+        shell: bash
+        run: |
+          if [ ! -d "models/$PARAKEET" ]; then
+            mkdir -p models
+            curl -fsSL -o parakeet.tar.bz2 "$PARAKEET_URL"
+            tar -xjf parakeet.tar.bz2 -C models
+            rm parakeet.tar.bz2
+          fi
+
+      - name: Autoprueba del ejecutable final
+        shell: pwsh
+        run: |
+          $m = Join-Path $PWD "models\$env:PARAKEET"
+          $exe = "target\release\wispr-swag.exe"
+          & $exe --selftest --ci --report selftest.json --lang auto `
+            --model $m `
+            --audio "$m\test_wavs\es.wav" --expect "No preguntes qué puede hacer tu país por ti, pregunta qué puedes hacer tú por tu país" `
+            --audio "$m\test_wavs\en.wav" --expect "Ask not what your country can do for you, ask what you can do for your country" `
+            | Tee-Object -FilePath selftest.txt
+          $code = $LASTEXITCODE
+          if (Test-Path selftest.json) {
+            $r = Get-Content selftest.json -Raw | ConvertFrom-Json
+            "## Autoprueba en Windows" | Add-Content $env:GITHUB_STEP_SUMMARY
+            "$($r.info.Windows)" | Add-Content $env:GITHUB_STEP_SUMMARY
+            "" | Add-Content $env:GITHUB_STEP_SUMMARY
+            "| Prueba | Resultado | Detalle |" | Add-Content $env:GITHUB_STEP_SUMMARY
+            "|---|---|---|" | Add-Content $env:GITHUB_STEP_SUMMARY
+            foreach ($c in $r.checks) {
+              $detail = ($c.detail -replace '\|', '/' -replace "`n", ' ')
+              "| $($c.name) | $($c.status) | $detail |" | Add-Content $env:GITHUB_STEP_SUMMARY
+            }
+          }
+          exit $code
+
+      - name: Medición de consumo (memoria y CPU)
+        if: always()
+        shell: pwsh
+        run: pwsh tools/measure.ps1 -Exe target\release\wispr-swag.exe -Out medicion.json
+
+      - name: Instalación y desinstalación silenciosas
+        if: always()
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem target\release\bundle\nsis\*-setup.exe | Select-Object -First 1
+          Start-Process $setup.FullName -ArgumentList "/S" -Wait
+          $dir = Join-Path $env:LOCALAPPDATA "Wispr Swag"
+          $exe = Join-Path $dir "wispr-swag.exe"
+          if (-not (Test-Path $exe)) { throw "No se instaló en $dir" }
+          $lnk = Get-ChildItem "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" -Recurse -Filter "Wispr Swag*.lnk" | Select-Object -First 1
+          if (-not $lnk) { throw "Falta el acceso directo del menú Inicio" }
+          Write-Host "Instalado: $exe · acceso directo: $($lnk.FullName)"
+          & $exe --selftest --report installed-selftest.json | Out-Null
+          Write-Host "Autoprueba del ejecutable instalado: código $LASTEXITCODE"
+          Start-Process (Join-Path $dir "uninstall.exe") -ArgumentList "/S" -Wait
+          Start-Sleep -Seconds 5
+          if (Test-Path $exe) { throw "La desinstalación dejó el ejecutable" }
+          "Instalación y desinstalación silenciosas correctas ($($setup.Name), $([math]::Round($setup.Length / 1MB, 1)) MB)." | Add-Content $env:GITHUB_STEP_SUMMARY
+
+      - name: Publicar informes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informes-windows
+          path: |
+            selftest.json
+            selftest.txt
+            installed-selftest.json
+            medicion.json
+          if-no-files-found: warn
