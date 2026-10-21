@@ -24,6 +24,17 @@ WISPR_TEST_MODELS=/ruta/modelos \
 La galería de la barra se genera en `target/pill-gallery/` con
 `cargo test -p wispr-pill --test gallery`.
 
+El descargador de modelos se prueba con el mismo código que usa la aplicación:
+
+```bash
+cargo run -p wispr-core --release --example download_model -- parakeet-tdt-0.6b-v3 /ruta/modelos
+```
+
+Verificado en Linux contra las publicaciones reales de GitHub: 487 MB
+descargados, extraídos y comprobados con SHA-256 en 55 s; al interrumpir la
+descarga (a los 63 MB y a los 369 MB, una de ellas por un corte de red real) se
+reanudó desde ese punto y terminó correctamente.
+
 ## Integración continua
 
 `.github/workflows/ci.yml` se ejecuta en cada envío:
