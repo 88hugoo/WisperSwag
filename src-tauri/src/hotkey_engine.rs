@@ -27,6 +27,15 @@ pub enum Decision {
     Block,
     /// Bloquear la tecla soltada e inyectar: máscara + soltar esta tecla.
     BlockAndMask(u16),
+    /// Bloquear la tecla e inyectar ya la máscara (pulsar y soltar). Windows ve así
+    /// otra tecla entre los modificadores pulsados y no abre el menú (Alt) ni Inicio
+    /// (Win) ni cambia la distribución del teclado (Alt+Mayús, Ctrl+Mayús) al soltarlos.
+    BlockAndMaskNow,
+}
+
+/// Modificadores cuya pulsación «a solas» tiene efecto en Windows.
+fn needs_mask(mods: Mods) -> bool {
+    mods.intersects(Mods::ALT | Mods::WIN | Mods::SHIFT)
 }
 
 #[derive(Debug, Clone)]
@@ -169,7 +178,7 @@ impl Engine {
                 }
                 self.consumed.insert(key, Some(a));
                 out.push(HotkeyEvent::Down(a));
-                return Decision::Block;
+                return if needs_mask(mods) { Decision::BlockAndMaskNow } else { Decision::Block };
             }
             if let Some(c) = &mut self.chord {
                 if !c.aborted && !c.other_key {
@@ -236,10 +245,11 @@ impl Engine {
             }
             self.capture = false;
             out.push(HotkeyEvent::Captured(Hotkey { mods, key: Some(key) }));
-            if mods.contains(Mods::WIN) {
-                self.mask_win = true;
+            if needs_mask(mods) {
+                Decision::BlockAndMaskNow
+            } else {
+                Decision::Block
             }
-            Decision::Block
         } else {
             self.down.remove(&key);
             if self.consumed.remove(&key).is_some() {
@@ -352,12 +362,24 @@ mod tests {
         press(&mut e, vk::LMENU, 0);
         press(&mut e, vk::LSHIFT, 0);
         let (d, ev) = press(&mut e, b'Z' as u16, 10);
-        assert_eq!(d, Decision::Block);
+        // Se enmascara al momento: Windows no ve «Alt+Mayús» a solas (cambio de idioma).
+        assert_eq!(d, Decision::BlockAndMaskNow);
         assert_eq!(ev, vec![HotkeyEvent::Down(Action::PasteLast)]);
         let (d, ev) = release(&mut e, b'Z' as u16, 50);
         assert_eq!((d, ev), (Decision::Block, vec![HotkeyEvent::Up(Action::PasteLast)]));
-        // Alt se enmascara solo si formó parte de un acorde; aquí no.
+        assert_eq!(release(&mut e, vk::LSHIFT, 55).0, Decision::Pass);
         assert_eq!(release(&mut e, vk::LMENU, 60).0, Decision::Pass);
+    }
+
+    #[test]
+    fn ctrl_only_combo_needs_no_mask() {
+        let mut e = Engine::new(HotkeyConfig {
+            bindings: vec![(Action::PasteLast, "Ctrl+F12".parse().unwrap())],
+            paused: false,
+            cancel_active: false,
+        });
+        press(&mut e, vk::LCONTROL, 0);
+        assert_eq!(press(&mut e, vk::F1 + 11, 5).0, Decision::Block);
     }
 
     #[test]
@@ -406,7 +428,7 @@ mod tests {
         press(&mut e, vk::LMENU, 0);
         press(&mut e, vk::LSHIFT, 1);
         let (d, ev) = press(&mut e, b'K' as u16, 2);
-        assert_eq!(d, Decision::Block);
+        assert_eq!(d, Decision::BlockAndMaskNow);
         assert_eq!(ev, vec![HotkeyEvent::Captured("Alt+Shift+K".parse().unwrap())]);
         assert!(!e.is_capturing());
         release(&mut e, b'K' as u16, 3);

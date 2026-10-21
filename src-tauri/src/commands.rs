@@ -239,7 +239,7 @@ pub async fn mic_test_start(state: S<'_>, device: Option<String>) -> R<String> {
     rx.await.map_err(err)?
 }
 
-fn mic_test_stop_inner(state: &AppState) {
+pub(crate) fn mic_test_stop_inner(state: &AppState) {
     if let Some(t) = state.mic_test.lock().take() {
         t.stop.store(true, Ordering::Relaxed);
     }
@@ -770,6 +770,19 @@ pub fn open_folder(app: AppHandle, state: S, kind: String) -> R<()> {
     app.opener().open_path(path.to_string_lossy(), None::<&str>).map_err(err)
 }
 
+/// Abre una página de Configuración de Windows (lista cerrada).
+#[tauri::command]
+pub fn open_system_settings(app: AppHandle, page: String) -> R<()> {
+    use tauri_plugin_opener::OpenerExt;
+    let url = match page.as_str() {
+        "microphone" => "ms-settings:privacy-microphone",
+        "sound" => "ms-settings:sound",
+        "startup" => "ms-settings:startupapps",
+        _ => return Err("página no permitida".into()),
+    };
+    app.opener().open_url(url, None::<&str>).map_err(err)
+}
+
 // ------------------------------------------------------------- Privacidad
 
 #[derive(Deserialize)]
@@ -912,6 +925,88 @@ pub async fn diagnostics(state: S<'_>) -> R<Diagnostics> {
 pub async fn check_updates(state: S<'_>) -> R<crate::updates::UpdateInfo> {
     let _ = &state;
     crate::updates::check().await
+}
+
+/// Espera unos segundos (para que el usuario cambie de ventana) y devuelve el
+/// ejecutable de la aplicación activa. Sirve para crear perfiles de aplicación.
+#[tauri::command]
+pub async fn foreground_in(seconds: u32) -> R<String> {
+    tokio::time::sleep(Duration::from_secs(seconds.clamp(1, 10) as u64)).await;
+    let fg = tauri::async_runtime::spawn_blocking(|| imp::foreground(false)).await.map_err(err)?;
+    if fg.is_self || fg.app.exe.is_empty() {
+        return Err("No se detectó otra aplicación. Cambia a ella durante la cuenta atrás.".into());
+    }
+    Ok(fg.app.exe)
+}
+
+#[derive(Serialize)]
+pub struct PillPreview {
+    pub width: u32,
+    pub height: u32,
+    /// RGBA sin premultiplicar, en base64.
+    pub rgba: String,
+}
+
+/// Renderiza la barra real con la apariencia actual (vista previa en Ajustes).
+#[tauri::command]
+pub fn pill_preview(state: S, phase: String, theme: String, scale: f32) -> PillPreview {
+    use base64::Engine as _;
+    use wispr_pill::{Animator, NoticeIcon, Phase, PillState, Renderer, Style, ThemeKind};
+    let s = state.settings();
+    let lang = state.lang();
+    let cfg = crate::platform::OverlayConfig::from_settings(&s, lang, state.dictate_shortcut_label());
+    let hover = phase == "hover";
+    let phase = match phase.as_str() {
+        "idle" => Phase::Idle,
+        "hover" => Phase::Idle,
+        "hold" => Phase::Listening { hands_free: false, command: false, elapsed_ms: 3000 },
+        "handsfree" => Phase::Listening { hands_free: true, command: false, elapsed_ms: 12_000 },
+        "command" => Phase::Listening { hands_free: false, command: true, elapsed_ms: 2000 },
+        "processing" => Phase::Processing { label: state.t("pill.processing").into() },
+        "success" => Phase::Success,
+        "notice" => Phase::Notice { text: state.t("pill.copied").into(), icon: NoticeIcon::Clipboard },
+        _ => Phase::Error { text: "El micrófono se ha desconectado.".into(), retry: true },
+    };
+    let st = PillState {
+        hover: hover.then_some(wispr_pill::Hit::Body),
+        phase,
+        preview: None,
+        pressed: None,
+        labels: cfg.labels.clone(),
+    };
+    let theme_kind = match theme.as_str() {
+        "light" => ThemeKind::Light,
+        _ => ThemeKind::Dark,
+    };
+    let style = Style {
+        theme: theme_kind,
+        scale: (scale * cfg.size_scale).clamp(0.5, 4.0),
+        opacity: cfg.opacity,
+        detail: cfg.detail,
+        animations: true,
+    };
+    let mut r = Renderer::new();
+    let mut a = Animator::new();
+    let layout = r.layout(&st, &style);
+    a.set_target(&layout, true, 1);
+    for i in 0..40 {
+        a.push_level(0.03 + 0.1 * (0.5 + 0.5 * (i as f32 * 0.7).sin()));
+    }
+    for _ in 0..90 {
+        a.tick(1.0 / 60.0);
+    }
+    a.clock = 1.3;
+    let f = r.render(&st, &style, &a);
+    let mut rgba = f.rgba;
+    for px in rgba.chunks_exact_mut(4) {
+        let a = px[3] as f32 / 255.0;
+        if a > 0.0 {
+            for c in &mut px[..3] {
+                *c = ((*c as f32 / a).round()).min(255.0) as u8;
+            }
+        }
+    }
+    PillPreview { width: f.width, height: f.height, rgba: base64::engine::general_purpose::STANDARD.encode(rgba) }
 }
 
 #[tauri::command]

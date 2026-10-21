@@ -61,6 +61,11 @@ unsafe extern "system" fn hook_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -
                         let _ = PostThreadMessageW(tid, WM_APP_MASK, WPARAM(released as usize), LPARAM(0));
                         return LRESULT(1);
                     }
+                    Decision::BlockAndMaskNow => {
+                        let tid = THREAD_ID.load(Ordering::Relaxed);
+                        let _ = PostThreadMessageW(tid, WM_APP_MASK, WPARAM(0), LPARAM(0));
+                        return LRESULT(1);
+                    }
                 }
             }
         }
@@ -68,10 +73,14 @@ unsafe extern "system" fn hook_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -
     CallNextHookEx(None, code, wparam, lparam)
 }
 
-/// Inyecta la tecla de máscara y la subida de la tecla bloqueada.
+/// Inyecta la tecla de máscara y, si se indica, la subida de la tecla bloqueada.
 fn inject_mask(released: u16) {
     let mask = wispr_core::hotkey::vk::MASK;
-    send_inputs(&[key_input(mask, false), key_input(mask, true), key_input(released, true)]);
+    if released == 0 {
+        send_inputs(&[key_input(mask, false), key_input(mask, true)]);
+    } else {
+        send_inputs(&[key_input(mask, false), key_input(mask, true), key_input(released, true)]);
+    }
 }
 
 pub struct HotkeyService {

@@ -1,0 +1,8 @@
+# Las bibliotecas estáticas de sherpa-onnx para Windows se compilan con /MT
+# (CRT estático); el ejecutable debe usar el mismo CRT para enlazar. Además,
+# así no hace falta instalar el redistribuible de Visual C++.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[target.aarch64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

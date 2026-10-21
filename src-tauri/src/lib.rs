@@ -145,6 +145,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             commands::get_bootstrap,
             commands::frontend_ready,
@@ -197,10 +198,13 @@ pub fn run() {
             commands::settings_backup_now,
             commands::settings_reset,
             commands::open_folder,
+            commands::open_system_settings,
             commands::storage_info,
             commands::delete_data,
             commands::diagnostics,
             commands::check_updates,
+            commands::foreground_in,
+            commands::pill_preview,
             commands::quit_app,
         ])
         .setup(move |app| setup(app, paths, minimized))

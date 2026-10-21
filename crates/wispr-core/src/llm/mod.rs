@@ -82,8 +82,10 @@ pub(crate) fn map_status(code: u16, body: &str) -> LlmError {
         .as_str()
         .or_else(|| v["error"].as_str())
         .or_else(|| v["message"].as_str())
-        .map(String::from)
-        .unwrap_or_else(|| body.chars().take(200).collect());
+        .unwrap_or(body)
+        .chars()
+        .take(200)
+        .collect::<String>();
     match code {
         401 | 403 => LlmError::Auth,
         408 | 504 => LlmError::Timeout,

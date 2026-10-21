@@ -127,8 +127,8 @@ pub fn collapse_repetitions(text: &str) -> String {
             if !only_soft_separators(&toks, words[w + n - 1], words[w + n]) {
                 continue;
             }
-            for k in words[w]..words[w + n] {
-                drop[k] = true;
+            for d in &mut drop[words[w]..words[w + n]] {
+                *d = true;
             }
             w += n;
             collapsed = true;

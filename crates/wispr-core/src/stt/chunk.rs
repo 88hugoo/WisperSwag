@@ -9,7 +9,7 @@ pub fn split(samples: &[f32], max_secs: f32, search_secs: f32) -> Vec<std::ops::
     let max = (max_secs * TARGET_RATE as f32) as usize;
     let search = (search_secs * TARGET_RATE as f32) as usize;
     if samples.len() <= max {
-        return vec![0..samples.len()];
+        return std::iter::once(0..samples.len()).collect();
     }
     let frame = TARGET_RATE as usize / 50; // 20 ms
     let mut out = Vec::new();

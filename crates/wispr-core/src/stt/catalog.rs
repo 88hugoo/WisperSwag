@@ -152,9 +152,24 @@ pub static CATALOG: &[ModelInfo] = &[
         auto_language: true,
         recommended: false,
         files: &[
-            ModelFile { archive_name: "small-encoder.int8.onnx", local_name: "encoder.int8.onnx", size: 0, sha256: None },
-            ModelFile { archive_name: "small-decoder.int8.onnx", local_name: "decoder.int8.onnx", size: 0, sha256: None },
-            ModelFile { archive_name: "small-tokens.txt", local_name: "tokens.txt", size: 0, sha256: None },
+            ModelFile {
+                archive_name: "small-encoder.int8.onnx",
+                local_name: "encoder.int8.onnx",
+                size: 112_442_483,
+                sha256: Some("4cbe7b22fa9026b843b60a68640c747de05bafb1a11b57edc0e66c232d9f33a9"),
+            },
+            ModelFile {
+                archive_name: "small-decoder.int8.onnx",
+                local_name: "decoder.int8.onnx",
+                size: 262_226_114,
+                sha256: Some("acad50b5c782696e91b55914cc5ab4f756f1532f76e22aa6fc615f39fb69a8ee"),
+            },
+            ModelFile {
+                archive_name: "small-tokens.txt",
+                local_name: "tokens.txt",
+                size: 816_730,
+                sha256: Some("b34b360dbb493e781e479794586d661700670d65564001f23024971d1f2fa126"),
+            },
         ],
     },
     ModelInfo {

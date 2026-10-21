@@ -66,8 +66,8 @@ fn box_blur(data: &mut [u8], w: usize, h: usize, radius: usize) {
             let row = &data[y * w..(y + 1) * w];
             let mut acc: u32 = 0;
             let win = (2 * radius + 1) as u32;
-            for i in 0..=radius.min(w - 1) {
-                acc += row[i] as u32;
+            for v in &row[..=radius.min(w - 1)] {
+                acc += *v as u32;
             }
             for x in 0..w {
                 tmp[y * w + x] = (acc / win) as u8;
@@ -475,9 +475,7 @@ fn draw_item(ctx: &mut Ctx, state: &PillState, anim: &Animator, kind: &ItemKind,
             _ => {}
         },
         ItemKind::TextButton { hit, text, px } => {
-            let bg = if state.pressed == Some(*hit) {
-                pal.button_pressed
-            } else if state.hover == Some(*hit) {
+            let bg = if state.pressed == Some(*hit) || state.hover == Some(*hit) {
                 pal.button_pressed
             } else {
                 pal.button_hover

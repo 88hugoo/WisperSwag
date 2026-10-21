@@ -10,7 +10,7 @@ fn main() {
     let threads: i32 = args.get(3).and_then(|s| s.parse().ok()).unwrap_or(4);
     let wave = Wave::read(wav).expect("leer wav");
     let mut config = OfflineRecognizerConfig::default();
-    if let Some(prefix) = std::env::var("WHISPER").ok() {
+    if let Ok(prefix) = std::env::var("WHISPER") {
         config.model_config.whisper = OfflineWhisperModelConfig {
             encoder: Some(format!("{dir}/{prefix}-encoder.int8.onnx")),
             decoder: Some(format!("{dir}/{prefix}-decoder.int8.onnx")),

@@ -23,6 +23,9 @@ use wispr_core::settings::{ActivationMode, EngineKind};
 use wispr_core::text::commands::CommandAction;
 use wispr_pill::{Hit, NoticeIcon, Phase};
 
+/// Tiempo que se conserva en memoria el audio de un dictado fallido.
+const RETRY_TTL: Duration = Duration::from_secs(600);
+
 #[derive(Debug)]
 pub enum Cmd {
     Hotkey(HotkeyEvent),
@@ -148,6 +151,10 @@ fn notice(state: &Arc<AppState>, text: &str, icon: NoticeIcon, from_worker: bool
 
 fn error(state: &Arc<AppState>, text: String, retry: bool, from_worker: bool) {
     sound(state, SoundKind::Error);
+    if state.settings.read().general.system_notifications {
+        use tauri_plugin_notification::NotificationExt;
+        let _ = state.app.notification().builder().title("Wispr Swag").body(&text).show();
+    }
     pill_flash(state, Phase::Error { text, retry }, if retry { 7000 } else { 4500 }, from_worker);
 }
 
@@ -717,7 +724,7 @@ async fn dictation(
             }
             Err(e) => {
                 tracing::warn!("error de transcripción: {e}");
-                *state.retry.lock() = Some(RetryAudio { samples, rate, target, command, at: Instant::now() });
+                store_retry(&state, samples, rate, target, command).await;
                 let retry = !matches!(e, wispr_core::stt::SttError::ModelMissing(_));
                 error(&state, e.to_string(), retry, true);
                 if matches!(e, wispr_core::stt::SttError::ModelMissing(_)) {
@@ -777,6 +784,26 @@ fn finish_flash(state: &Arc<AppState>, out: Option<InsertOutcome>) {
         Some(InsertOutcome::Copied(_)) => notice(state, state.t("pill.copied"), NoticeIcon::Clipboard, true),
         None => pill(state, Phase::Idle, true),
     }
+}
+
+/// El audio de un dictado fallido se conserva solo en memoria (a 16 kHz, para
+/// ocupar menos) mientras se puede pulsar «Reintentar», y se descarta a los 10 minutos.
+async fn store_retry(state: &Arc<AppState>, samples: Vec<f32>, rate: u32, target: Foreground, command: bool) {
+    let samples = if rate == dsp::TARGET_RATE {
+        samples
+    } else {
+        tauri::async_runtime::spawn_blocking(move || dsp::resample(&samples, rate, dsp::TARGET_RATE)).await.unwrap_or_default()
+    };
+    let at = Instant::now();
+    *state.retry.lock() = Some(RetryAudio { samples, rate: dsp::TARGET_RATE, target, command, at });
+    let st = state.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(RETRY_TTL).await;
+        let mut retry = st.retry.lock();
+        if retry.as_ref().is_some_and(|r| r.at == at) {
+            *retry = None;
+        }
+    });
 }
 
 async fn run_command(state: &Arc<AppState>, instruction: &str, target: &Foreground) {

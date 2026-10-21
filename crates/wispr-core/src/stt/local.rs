@@ -53,6 +53,14 @@ fn whisper_language(lang: &str) -> String {
     }
 }
 
+/// Los transductores de NeMo (Parakeet) colocan `<blk>` como último símbolo;
+/// los de icefall/k2 lo ponen el primero.
+fn is_nemo_tokens(tokens: &std::path::Path) -> bool {
+    std::fs::read_to_string(tokens)
+        .map(|t| t.lines().rev().find(|l| !l.trim().is_empty()).is_some_and(|l| l.starts_with("<blk>")))
+        .unwrap_or(false)
+}
+
 impl LocalEngine {
     pub fn new() -> Self {
         Self { loaded: Mutex::new(None), last_used: Mutex::new(Instant::now()), threads: Mutex::new(0) }
@@ -77,7 +85,9 @@ impl LocalEngine {
             }
         }
         // Libera el anterior antes de cargar el nuevo (evita picos de memoria).
-        *guard = None;
+        if guard.take().is_some() {
+            crate::sysinfo::release_free_memory();
+        }
         let mut config = OfflineRecognizerConfig::default();
         config.model_config.num_threads = threads as i32;
         config.model_config.tokens = Some(model.tokens().to_string_lossy().into_owned());
@@ -89,7 +99,9 @@ impl LocalEngine {
                     decoder: Some(model.decoder().to_string_lossy().into_owned()),
                     joiner: Some(model.joiner().to_string_lossy().into_owned()),
                 };
-                if !model.custom {
+                // Indicar el tipo evita que sherpa-onnx lo detecte cargando el modelo dos
+                // veces (el doble de memoria y de tiempo de carga).
+                if !model.custom || is_nemo_tokens(&model.tokens()) {
                     config.model_config.model_type = Some("nemo_transducer".into());
                 }
             }
@@ -169,7 +181,10 @@ impl LocalEngine {
     }
 
     pub fn unload(&self) {
-        if self.loaded.lock().take().is_some() {
+        let taken = self.loaded.lock().take();
+        if let Some(loaded) = taken {
+            drop(loaded);
+            crate::sysinfo::release_free_memory();
             tracing::info!("modelo local liberado de la memoria");
         }
     }
@@ -208,4 +223,21 @@ fn join_parts(parts: &[String]) -> String {
         out.push_str(p);
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_nemo_tokens;
+
+    #[test]
+    fn detects_nemo_tokens_layout() {
+        let dir = tempfile::tempdir().unwrap();
+        let nemo = dir.path().join("nemo.txt");
+        std::fs::write(&nemo, "<unk> 0\na 1\n<blk> 2\n\n").unwrap();
+        assert!(is_nemo_tokens(&nemo));
+        let k2 = dir.path().join("k2.txt");
+        std::fs::write(&k2, "<blk> 0\n<sos/eos> 1\na 2\n").unwrap();
+        assert!(!is_nemo_tokens(&k2));
+        assert!(!is_nemo_tokens(&dir.path().join("no-existe.txt")));
+    }
 }

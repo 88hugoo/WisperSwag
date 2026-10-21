@@ -46,8 +46,10 @@ fn open_on_main(app: &AppHandle, route: Option<String>) {
         Ok(w) => {
             let st = state.inner().clone();
             let win = w.clone();
-            w.on_window_event(move |ev| {
-                if let WindowEvent::CloseRequested { api, .. } = ev {
+            w.on_window_event(move |ev| match ev {
+                WindowEvent::CloseRequested { api, .. } => {
+                    // Una prueba de micrófono nunca sigue activa sin la ventana visible.
+                    crate::commands::mic_test_stop_inner(&st);
                     match st.settings.read().general.close_behavior {
                         CloseBehavior::HideToTray => {
                             api.prevent_close();
@@ -60,6 +62,8 @@ fn open_on_main(app: &AppHandle, route: Option<String>) {
                         CloseBehavior::ReleaseMemory => {}
                     }
                 }
+                WindowEvent::Destroyed => crate::commands::mic_test_stop_inner(&st),
+                _ => {}
             });
             // Red de seguridad: si la interfaz no avisa de que está lista, se muestra igualmente.
             let w2 = w.clone();

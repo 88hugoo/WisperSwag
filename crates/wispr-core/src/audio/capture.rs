@@ -331,7 +331,7 @@ fn build_stream(
     shared: Arc<Shared>,
 ) -> Result<cpal::Stream, CaptureError> {
     use cpal::SampleFormat as F;
-    let stream_config: cpal::StreamConfig = config.clone().into();
+    let stream_config: cpal::StreamConfig = (*config).into();
     let err_shared = shared.clone();
     let on_error = move |e: cpal::Error| {
         use cpal::ErrorKind as K;

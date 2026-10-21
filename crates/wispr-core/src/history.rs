@@ -404,7 +404,7 @@ impl History {
         Ok(match format {
             ExportFormat::Txt => entries
                 .iter()
-                .map(|e| format!("[{}]\n{}\n", &e.created_at[..16.min(e.created_at.len())].replace('T', " "), e.final_text))
+                .map(|e| format!("[{}]\n{}\n", e.created_at[..16.min(e.created_at.len())].replace('T', " "), e.final_text))
                 .collect::<Vec<_>>()
                 .join("\n"),
             ExportFormat::Markdown => {
@@ -412,7 +412,7 @@ impl History {
                 for e in &entries {
                     out.push_str(&format!(
                         "## {}\n\n{}\n\n",
-                        &e.created_at[..16.min(e.created_at.len())].replace('T', " "),
+                        e.created_at[..16.min(e.created_at.len())].replace('T', " "),
                         e.final_text
                     ));
                 }

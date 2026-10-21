@@ -187,6 +187,7 @@ pub fn ai_applies(settings: &Settings, mode: &WritingMode) -> bool {
 }
 
 /// Procesa el texto reconocido. `on_ai` se llama justo antes de usar la IA (para la interfaz).
+#[allow(clippy::too_many_arguments)]
 pub async fn process_text(
     state: &Arc<AppState>,
     raw: &str,

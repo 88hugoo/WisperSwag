@@ -220,7 +220,10 @@ pub fn set_autostart(enabled: bool) -> Result<(), String> {
 
 // ------------------------------------------------------------------ Sonidos
 
-static SOUNDS: Lazy<Mutex<HashMap<(u8, u8), &'static [u8]>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+/// Sonidos ya sintetizados (tipo, volumen) → WAV en memoria.
+type SoundCache = HashMap<(u8, u8), &'static [u8]>;
+
+static SOUNDS: Lazy<Mutex<SoundCache>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 /// Sintetiza un sonido breve y suave (sin archivos de audio).
 fn synth(kind: SoundKind, volume: f32) -> Vec<f32> {
@@ -257,7 +260,7 @@ pub fn play_sound(kind: SoundKind, volume: f32) {
     let key = (kind as u8, (volume * 20.0).round() as u8);
     let bytes: &'static [u8] = {
         let mut cache = SOUNDS.lock();
-        *cache.entry(key).or_insert_with(|| {
+        cache.entry(key).or_insert_with(|| {
             let wav = wispr_core::audio::wav::encode_wav(&synth(kind, volume), 44_100);
             Box::leak(wav.into_boxed_slice())
         })

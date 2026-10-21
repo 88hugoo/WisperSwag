@@ -18,6 +18,13 @@ pub fn current() -> ProcessUsage {
     imp::current()
 }
 
+/// Devuelve al sistema la memoria libre que el asignador conserva tras liberar
+/// bloques grandes (p. ej. al descargar el modelo de voz). Sin esto, la memoria
+/// del modelo seguiría figurando como usada aunque ya no lo esté.
+pub fn release_free_memory() {
+    imp::release_free_memory()
+}
+
 /// Porcentaje de CPU entre dos mediciones (sobre el total de núcleos lógicos).
 pub fn cpu_percent(prev: &ProcessUsage, now: &ProcessUsage, elapsed: std::time::Duration) -> f64 {
     let cores = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1) as f64;
@@ -32,8 +39,20 @@ pub fn cpu_percent(prev: &ProcessUsage, now: &ProcessUsage, elapsed: std::time::
 mod imp {
     use super::ProcessUsage;
     use windows::Win32::Foundation::FILETIME;
+    use windows::Win32::Foundation::HANDLE;
+    use windows::Win32::System::Memory::{GetProcessHeaps, HeapCompact, HEAP_FLAGS};
     use windows::Win32::System::ProcessStatus::{GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS, PROCESS_MEMORY_COUNTERS_EX};
     use windows::Win32::System::Threading::{GetCurrentProcess, GetProcessTimes};
+
+    pub fn release_free_memory() {
+        unsafe {
+            let mut heaps = [HANDLE::default(); 64];
+            let n = GetProcessHeaps(&mut heaps) as usize;
+            for h in &heaps[..n.min(heaps.len())] {
+                HeapCompact(*h, HEAP_FLAGS(0));
+            }
+        }
+    }
 
     fn ft(f: &FILETIME) -> u64 {
         ((f.dwHighDateTime as u64) << 32) | f.dwLowDateTime as u64
@@ -43,8 +62,10 @@ mod imp {
         let mut out = ProcessUsage::default();
         unsafe {
             let h = GetCurrentProcess();
-            let mut c = PROCESS_MEMORY_COUNTERS_EX::default();
-            c.cb = std::mem::size_of::<PROCESS_MEMORY_COUNTERS_EX>() as u32;
+            let mut c = PROCESS_MEMORY_COUNTERS_EX {
+                cb: std::mem::size_of::<PROCESS_MEMORY_COUNTERS_EX>() as u32,
+                ..Default::default()
+            };
             if GetProcessMemoryInfo(h, &mut c as *mut _ as *mut PROCESS_MEMORY_COUNTERS, c.cb).is_ok() {
                 out.working_set = c.WorkingSetSize as u64;
                 out.private_bytes = c.PrivateUsage as u64;
@@ -61,6 +82,20 @@ mod imp {
 #[cfg(target_os = "linux")]
 mod imp {
     use super::ProcessUsage;
+
+    #[cfg(target_env = "gnu")]
+    pub fn release_free_memory() {
+        extern "C" {
+            fn malloc_trim(pad: usize) -> i32;
+        }
+        // SAFETY: función de glibc sin requisitos previos.
+        unsafe {
+            malloc_trim(0);
+        }
+    }
+
+    #[cfg(not(target_env = "gnu"))]
+    pub fn release_free_memory() {}
 
     pub fn current() -> ProcessUsage {
         let mut out = ProcessUsage::default();
@@ -93,6 +128,8 @@ mod imp {
     pub fn current() -> super::ProcessUsage {
         super::ProcessUsage::default()
     }
+
+    pub fn release_free_memory() {}
 }
 
 #[cfg(test)]

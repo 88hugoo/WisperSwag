@@ -1,0 +1,498 @@
+{
+  "version": 1,
+  "onboarding_done": false,
+  "general": {
+    "ui_language": "auto",
+    "launch_at_startup": true,
+    "start_minimized": true,
+    "close_behavior": "release_memory",
+    "system_notifications": false,
+    "sounds": true,
+    "sound_volume": 0.35,
+    "check_updates": false,
+    "auto_backup": true
+  },
+  "appearance": {
+    "theme": "system",
+    "pill_size": "medium",
+    "pill_opacity": 0.94,
+    "pill_anchor": "bottom_center",
+    "pill_custom_x": 0.5,
+    "pill_custom_y": 0.95,
+    "pill_monitor": "active",
+    "show_idle_pill": true,
+    "animations": true,
+    "info_level": "standard",
+    "hide_in_fullscreen": true,
+    "live_preview": false
+  },
+  "audio": {
+    "input_device": null,
+    "input_device_name": null,
+    "auto_gain": true,
+    "high_pass": true,
+    "max_recording_secs": 600,
+    "mute_system_audio": false
+  },
+  "dictation": {
+    "hotkeys": {
+      "dictate": "Ctrl+Win",
+      "command": "Ctrl+Win+Alt",
+      "cancel": "Esc",
+      "toggle_bar": "Alt+Shift+B",
+      "paste_last": "Alt+Shift+Z",
+      "rewrite_selection": "Alt+Shift+R"
+    },
+    "activation": "hybrid",
+    "hold_threshold_ms": 350,
+    "auto_insert": true,
+    "insert_method": "paste",
+    "restore_clipboard": true,
+    "smart_spacing": true,
+    "also_copy": false,
+    "min_duration_ms": 300,
+    "hotkeys_paused": false
+  },
+  "engine": {
+    "kind": "local",
+    "local_model": "parakeet-tdt-0.6b-v3",
+    "language": "es",
+    "threads": 0,
+    "keep_loaded_minutes": 10,
+    "preload_on_start": false,
+    "cloud": {
+      "provider": "open_ai",
+      "base_url": "",
+      "model": "",
+      "timeout_secs": 30,
+      "send_vocabulary_hint": true
+    },
+    "fallback_to_local": true,
+    "use_hotwords": true
+  },
+  "writing": {
+    "active_mode": "natural",
+    "modes": [
+      {
+        "id": "natural",
+        "name": "Natural",
+        "description": "Conserva tu tono. Limpia muletillas, repeticiones y puntuación.",
+        "builtin": true,
+        "local": {
+          "final_period": "keep",
+          "lowercase_start": false,
+          "remove_discourse_markers": false,
+          "structure": "plain",
+          "capitalize": true
+        },
+        "template": "",
+        "ai_enabled": true,
+        "ai_instructions": "Corrige solo errores evidentes de transcripción, puntuación, mayúsculas y gramática. Conserva las palabras, el tono y el estilo del usuario. Si el usuario se corrige a sí mismo al hablar («a las tres, no, a las cuatro»), conserva solo la versión corregida. No reformules, no resumas y no añadas nada.",
+        "temperature": 0.1
+      },
+      {
+        "id": "professional",
+        "name": "Profesional",
+        "description": "Texto de trabajo claro y sin coloquialismos.",
+        "builtin": true,
+        "local": {
+          "final_period": "keep",
+          "lowercase_start": false,
+          "remove_discourse_markers": true,
+          "structure": "paragraphs",
+          "capitalize": true
+        },
+        "template": "",
+        "ai_enabled": true,
+        "ai_instructions": "Reescribe el texto con un tono profesional, claro y directo, adecuado para el entorno laboral. Mantén toda la información y la intención. Elimina muletillas y coloquialismos. No añadas datos nuevos.",
+        "temperature": 0.3
+      },
+      {
+        "id": "concise",
+        "name": "Conciso",
+        "description": "Elimina redundancias y rodeos sin perder información.",
+        "builtin": true,
+        "local": {
+          "final_period": "keep",
+          "lowercase_start": false,
+          "remove_discourse_markers": true,
+          "structure": "plain",
+          "capitalize": true
+        },
+        "template": "",
+        "ai_enabled": true,
+        "ai_instructions": "Haz el texto lo más breve y directo posible sin perder ninguna información relevante: elimina redundancias, rodeos, repeticiones y frases de relleno.",
+        "temperature": 0.2
+      },
+      {
+        "id": "formal",
+        "name": "Formal",
+        "description": "Registro cuidado y respetuoso.",
+        "builtin": true,
+        "local": {
+          "final_period": "keep",
+          "lowercase_start": false,
+          "remove_discourse_markers": true,
+          "structure": "paragraphs",
+          "capitalize": true
+        },
+        "template": "",
+        "ai_enabled": true,
+        "ai_instructions": "Reescribe el texto con un registro formal y cuidado. En español, usa el trato de usted salvo que el texto indique lo contrario. Mantén el contenido íntegro y no añadas información.",
+        "temperature": 0.3
+      },
+      {
+        "id": "informal",
+        "name": "Informal",
+        "description": "Tono cercano y conversacional.",
+        "builtin": true,
+        "local": {
+          "final_period": "remove_if_single_sentence",
+          "lowercase_start": false,
+          "remove_discourse_markers": false,
+          "structure": "plain",
+          "capitalize": true
+        },
+        "template": "",
+        "ai_enabled": true,
+        "ai_instructions": "Reescribe el texto con un tono cercano, natural y conversacional. Mantén el contenido. No uses emojis salvo que el usuario los mencione.",
+        "temperature": 0.5
+      },
+      {
+        "id": "email",
+        "name": "Correo electrónico",
+        "description": "Saludo, cuerpo en párrafos y despedida.",
+        "builtin": true,
+        "local": {
+          "final_period": "keep",
+          "lowercase_start": false,
+          "remove_discourse_markers": true,
+          "structure": "email",
+          "capitalize": true
+        },
+        "template": "",
+        "ai_enabled": true,
+        "ai_instructions": "Da formato de correo electrónico: saludo en su propia línea si el usuario lo dicta, cuerpo en párrafos breves y despedida en una línea aparte. Corrige el estilo para que sea claro. No inventes nombres, firmas, asuntos ni datos que no se hayan dictado.",
+        "temperature": 0.3
+      },
+      {
+        "id": "messages",
+        "name": "Mensajes",
+        "description": "Breve y natural para chats. Sin punto final en frases sueltas.",
+        "builtin": true,
+        "local": {
+          "final_period": "remove_if_single_sentence",
+          "lowercase_start": false,
+          "remove_discourse_markers": false,
+          "structure": "plain",
+          "capitalize": true
+        },
+        "template": "",
+        "ai_enabled": true,
+        "ai_instructions": "Optimiza el texto para un mensaje de chat: breve, natural y sin formalidades innecesarias. Si es una sola frase, no pongas punto final.",
+        "temperature": 0.3
+      },
+      {
+        "id": "code",
+        "name": "Programación",
+        "description": "Respeta términos técnicos; símbolos dictados y camelCase/snake_case.",
+        "builtin": true,
+        "local": {
+          "final_period": "remove_if_single_sentence",
+          "lowercase_start": false,
+          "remove_discourse_markers": false,
+          "structure": "code",
+          "capitalize": false
+        },
+        "template": "",
+        "ai_enabled": true,
+        "ai_instructions": "El texto se usará en un entorno de programación. Respeta exactamente nombres de variables, funciones, comandos, rutas y términos técnicos (no los traduzcas). Convierte símbolos dictados en su forma escrita cuando sea inequívoco. Si el usuario dicta código, devuelve solo el código, sin bloques Markdown.",
+        "temperature": 0.0
+      },
+      {
+        "id": "notes",
+        "name": "Notas",
+        "description": "Organiza las ideas en viñetas.",
+        "builtin": true,
+        "local": {
+          "final_period": "keep",
+          "lowercase_start": false,
+          "remove_discourse_markers": true,
+          "structure": "bullets",
+          "capitalize": true
+        },
+        "template": "",
+        "ai_enabled": true,
+        "ai_instructions": "Organiza el contenido como apuntes: viñetas breves que empiezan por «- », agrupando ideas relacionadas. Conserva todos los datos (cifras, nombres, fechas). No añadas títulos inventados.",
+        "temperature": 0.2
+      },
+      {
+        "id": "tasks",
+        "name": "Lista de tareas",
+        "description": "Convierte lo dictado en tareas «- [ ]».",
+        "builtin": true,
+        "local": {
+          "final_period": "keep",
+          "lowercase_start": false,
+          "remove_discourse_markers": true,
+          "structure": "checklist",
+          "capitalize": true
+        },
+        "template": "",
+        "ai_enabled": true,
+        "ai_instructions": "Convierte la explicación dictada en una lista de tareas accionables. Cada tarea en una línea que empiece por «- [ ] », con verbo en infinitivo y los datos concretos (fechas, responsables, cifras) que se hayan dicho. No inventes tareas.",
+        "temperature": 0.1
+      },
+      {
+        "id": "creative",
+        "name": "Creativo",
+        "description": "Estilo más elaborado y expresivo.",
+        "builtin": true,
+        "local": {
+          "final_period": "keep",
+          "lowercase_start": false,
+          "remove_discourse_markers": false,
+          "structure": "paragraphs",
+          "capitalize": true
+        },
+        "template": "",
+        "ai_enabled": true,
+        "ai_instructions": "Mejora la expresividad, la riqueza léxica y el ritmo del texto con un estilo más elaborado, sin cambiar el significado ni añadir hechos nuevos.",
+        "temperature": 0.8
+      },
+      {
+        "id": "custom",
+        "name": "Personalizado",
+        "description": "Tus propias instrucciones.",
+        "builtin": true,
+        "local": {
+          "final_period": "keep",
+          "lowercase_start": false,
+          "remove_discourse_markers": false,
+          "structure": "plain",
+          "capitalize": true
+        },
+        "template": "",
+        "ai_enabled": true,
+        "ai_instructions": "",
+        "temperature": 0.3
+      }
+    ],
+    "cleanup": {
+      "remove_fillers": true,
+      "fillers": [
+        "eh",
+        "ehm",
+        "em",
+        "emm",
+        "mmm",
+        "mm",
+        "hmm",
+        "uh",
+        "um",
+        "umm",
+        "erm"
+      ],
+      "collapse_repetitions": true,
+      "remove_false_starts": true,
+      "spoken_punctuation": true,
+      "auto_capitalize": true,
+      "fix_spacing": true,
+      "format_numbers": false,
+      "hallucination_filter": true
+    }
+  },
+  "vocabulary": {
+    "entries": [],
+    "replacements": [],
+    "lists": [
+      "General",
+      "Informática",
+      "Programación",
+      "Trabajo",
+      "Estudios"
+    ],
+    "disabled_lists": [],
+    "phonetic_matching": true
+  },
+  "snippets": [],
+  "commands": {
+    "enabled": true,
+    "commands": [
+      {
+        "id": "delete_last",
+        "phrases": [
+          "borra eso",
+          "borrar eso",
+          "elimina eso",
+          "bórralo",
+          "borra lo último",
+          "scratch that",
+          "delete that"
+        ],
+        "action": {
+          "type": "delete_last"
+        },
+        "enabled": true,
+        "builtin": true
+      },
+      {
+        "id": "undo",
+        "phrases": [
+          "deshacer",
+          "deshaz",
+          "undo"
+        ],
+        "action": {
+          "type": "undo"
+        },
+        "enabled": true,
+        "builtin": true
+      },
+      {
+        "id": "enter",
+        "phrases": [
+          "pulsa intro",
+          "pulsa enter",
+          "presiona intro",
+          "presiona enter",
+          "dale a intro",
+          "press enter",
+          "hit enter"
+        ],
+        "action": {
+          "type": "press_enter"
+        },
+        "enabled": true,
+        "builtin": true
+      },
+      {
+        "id": "tab",
+        "phrases": [
+          "pulsa tabulador",
+          "tabulador",
+          "press tab"
+        ],
+        "action": {
+          "type": "press_tab"
+        },
+        "enabled": true,
+        "builtin": true
+      },
+      {
+        "id": "newline",
+        "phrases": [
+          "nueva línea",
+          "salto de línea",
+          "new line"
+        ],
+        "action": {
+          "type": "new_line"
+        },
+        "enabled": true,
+        "builtin": true
+      },
+      {
+        "id": "paragraph",
+        "phrases": [
+          "nuevo párrafo",
+          "punto y aparte",
+          "new paragraph"
+        ],
+        "action": {
+          "type": "new_paragraph"
+        },
+        "enabled": true,
+        "builtin": true
+      },
+      {
+        "id": "select_all",
+        "phrases": [
+          "selecciona todo",
+          "seleccionar todo",
+          "select all"
+        ],
+        "action": {
+          "type": "select_all"
+        },
+        "enabled": true,
+        "builtin": true
+      },
+      {
+        "id": "copy",
+        "phrases": [
+          "copia eso",
+          "copiar eso",
+          "copy that"
+        ],
+        "action": {
+          "type": "copy"
+        },
+        "enabled": true,
+        "builtin": true
+      },
+      {
+        "id": "paste_last",
+        "phrases": [
+          "pega lo último",
+          "pegar lo último",
+          "repite lo último",
+          "paste last"
+        ],
+        "action": {
+          "type": "paste_last"
+        },
+        "enabled": true,
+        "builtin": true
+      }
+    ],
+    "send_suffix": false,
+    "send_phrases": [
+      "pulsa intro",
+      "pulsa enter",
+      "press enter"
+    ]
+  },
+  "apps": {
+    "enabled": true,
+    "use_window_titles": false,
+    "category_modes": {
+      "code": "code",
+      "terminal": "code",
+      "email": "email",
+      "chat": "messages",
+      "notes": "notes"
+    },
+    "profiles": []
+  },
+  "ai": {
+    "enabled": false,
+    "provider": "open_ai",
+    "base_url": "",
+    "model": "",
+    "timeout_secs": 12,
+    "max_input_chars": 8000,
+    "daily_request_limit": 500,
+    "monthly_token_limit": 0,
+    "send_app_context": true,
+    "send_vocabulary": true,
+    "consent_given": false,
+    "price_input_per_mtok": 0.0,
+    "price_output_per_mtok": 0.0
+  },
+  "privacy": {
+    "save_history": true,
+    "history_retention_days": 90,
+    "store_app_name": true,
+    "save_audio": false,
+    "audio_retention_days": 7,
+    "store_raw_text": true
+  },
+  "performance": {
+    "incremental_transcription": true,
+    "segment_pause_ms": 900,
+    "pill_fps": 30,
+    "low_power": false,
+    "typing_wpm": 40
+  }
+}
