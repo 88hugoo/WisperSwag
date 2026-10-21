@@ -79,6 +79,11 @@ function catalog() {
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+function keyLabel(hotkey: string): string {
+  const label = String(hotkey).replaceAll("+", " + ");
+  return params.get("lang") === "en" ? label : label.replace("Shift", "Mayús").replace("Space", "Espacio");
+}
+
 export async function invoke(cmd: string, args: Record<string, any>): Promise<unknown> {
   await delay(60);
   switch (cmd) {
@@ -187,9 +192,9 @@ export async function invoke(cmd: string, args: Record<string, any>): Promise<un
       return { total_words: 18452, total_dictations: 812, total_audio_ms: 7_400_000, today_words: 642, week_words: 3910, minutes_saved: 338, speaking_wpm: 149, streak_days: 12, last_30_days: days, top_apps: [["slack.exe", 210], ["outlook.exe", 160], ["code.exe", 98]] };
     }
     case "hotkey_check":
-      return { valid: true, display: String(args.hotkey).replaceAll("+", " + ").replace("Shift", "Mayús").replace("Space", "Espacio"), conflicts: args.hotkey === "Win+L" ? [{ severity: "error", message: "Reservado por Windows (bloquear el equipo)." }] : [] };
+      return { valid: true, display: keyLabel(args.hotkey), conflicts: args.hotkey === "Win+L" ? [{ severity: "error", message: "Reservado por Windows (bloquear el equipo)." }] : [] };
     case "hotkey_display_cmd":
-      return String(args.hotkey).replaceAll("+", " + ").replace("Shift", "Mayús").replace("Space", "Espacio");
+      return keyLabel(args.hotkey);
     case "hotkey_capture_start":
       setTimeout(() => emit("hotkey-captured", { hotkey: "Ctrl+Win", display: "Ctrl + Win" }), 1500);
       return null;
