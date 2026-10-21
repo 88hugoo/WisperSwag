@@ -11,7 +11,8 @@ documentos, código o el navegador.
 - **Ligero.** Un solo proceso nativo: icono de la bandeja, gancho de teclado y
   una barra flotante dibujada por la propia aplicación. La ventana de ajustes
   (WebView2) solo existe mientras está abierta y el modelo de voz se libera de
-  la memoria tras unos minutos sin dictar.
+  la memoria tras unos minutos sin dictar. Medido en Windows: **23 MB y 0 % de
+  CPU en reposo** ([detalles](docs/PERFORMANCE.md)).
 - **Barra flotante** compacta, que nunca roba el foco, con estados claros
   (escuchando, procesando, hecho, aviso, error con «Reintentar»).
 - **Texto cuidado.** Limpieza de muletillas, repeticiones y arranques en falso

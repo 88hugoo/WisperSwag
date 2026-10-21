@@ -19,9 +19,46 @@ de la aplicación indicados. Para repetirlas:
 
 ## Windows
 
-Mediciones de la integración continua de GitHub Actions (`windows-latest`).
+Equipo: máquina virtual de GitHub Actions con Windows Server 2025 Datacenter
+24H2 (compilación 26100), 2 núcleos lógicos, sin micrófono y con sesión de
+administrador. Ejecutable final en modo *release* (ejecución 39516894158 de la
+CI, 21 de octubre de 2026).
 
-PENDIENTE_WINDOWS
+### Consumo de la aplicación (`tools/measure.ps1`)
+
+Perfil limpio, inicio minimizado, sin modelo cargado. Muestras cada segundo.
+
+| Estado | Memoria del proceso (conjunto de trabajo) | Memoria privada | Total con WebView2 | CPU del proceso | Procesos WebView2 |
+|---|---|---|---|---|---|
+| Reposo: bandeja, atajos y barra (60 s) | 23,1 MB | 9,0 MB | 23,1 MB | 0 % | 0 |
+| Ventana principal abierta (20 s) | 38,7 MB | 11,2 MB | 338,5 MB | 0 % | 6 |
+| Después de cerrar la ventana (60 s) | 28,4 MB | 11,1 MB | 28,4 MB | 0 % | 0 |
+
+- La CPU se mide con el tiempo de procesador acumulado del proceso principal y
+  se redondea a milésimas: en reposo no consumió tiempo de CPU medible en todo el
+  minuto (Windows lo contabiliza en intervalos de unos 15 ms).
+- Con la ventana abierta, la CPU de los procesos de WebView2 no está incluida en
+  esa columna; su memoria sí está en «Total con WebView2».
+- Al cerrar la ventana, los 6 procesos de WebView2 desaparecen y se recuperan
+  unos 310 MB. La aplicación se cerró de forma ordenada con `--quit`.
+
+### Motor de voz (autoprueba con el ejecutable final)
+
+| Medida | Resultado |
+|---|---|
+| Carga de Parakeet V3 int8 (2 hilos) | 2,4 s |
+| Memoria del proceso | 25 MB antes de cargar → 714 MB con el modelo → 763 MB al transcribir |
+| Memoria tras liberar el modelo | 47,7 MB (se liberan 716 MB) |
+| 5,3 s de voz en español | 1,08 s, texto exacto («No preguntes qué puede hacer tu país por ti, pregunta qué puedes hacer tú por tu país.») |
+| 3,8 s de voz en inglés | 0,88 s, texto exacto |
+| Fotograma de la barra | 0,35 ms (100 %), 0,54 ms (150 %), 0,49 ms (200 %) |
+
+Con solo 2 núcleos virtuales la transcripción va unas 4,5–5 veces más rápida
+que el tiempo real. En la máquina Linux (4 núcleos, 2 hilos para el motor) fue de
+9 a 11 veces. En un equipo con 8 núcleos lógicos el motor usa 4 hilos; ese caso
+no se ha medido.
+
+Instaladores: NSIS y MSI, 39,6 MB los dos juntos comprimidos.
 
 ## Linux (pruebas portables)
 

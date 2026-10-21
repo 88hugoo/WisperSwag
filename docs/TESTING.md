@@ -36,7 +36,47 @@ La galería de la barra se genera en `target/pill-gallery/` con
   silenciosas del instalador. Los resultados aparecen en el resumen de la
   ejecución y como artefactos (`wispr-swag-windows`, `informes-windows`).
 
-RESULTADOS_WINDOWS
+### Resultado en Windows (ejecución 39516894158)
+
+Windows Server 2025 Datacenter 24H2, 2 núcleos lógicos, sin micrófono.
+
+| Paso | Resultado |
+|---|---|
+| Pruebas (`cargo test --workspace`, MSVC) | Correctas |
+| Instaladores NSIS y MSI | Generados |
+| Autoprueba del ejecutable final | **19 correctas, 0 fallidas, 1 omitida** (no hay micrófono) |
+| Medición de consumo | Reposo: 23,1 MB y 0 % de CPU; detalle en [PERFORMANCE.md](PERFORMANCE.md) |
+| Instalación silenciosa | En `%LOCALAPPDATA%\Wispr Swag`, con acceso directo en el menú Inicio |
+| Autoprueba del programa instalado | Correcta |
+| Desinstalación silenciosa | Elimina el programa |
+
+Detalle de la autoprueba:
+
+| Prueba | Resultado |
+|---|---|
+| Portapapeles: guardar, sustituir y restaurar | Correcta |
+| Detección de la aplicación activa | Correcta, sin leer el título de la ventana |
+| Inserción por pegado con restauración del portapapeles | Texto exacto (acentos, ñ, €, comillas) |
+| Inserción por escritura Unicode | Texto exacto, incluidos emojis |
+| Barra flotante | Se muestra en cada estado y no cambia la ventana activa |
+| Ctrl + Win mantenido | Pulsar y soltar detectados; el menú Inicio no se abre |
+| Ctrl + Win seguido de otra tecla | Se anula y la tecla llega a Windows |
+| Ctrl + Win + Alt | Pasa de dictado a modo comando sin soltar |
+| Esc | Libre en reposo; cancela durante el dictado |
+| Alt + Mayús + Z | Detectado y consumido; la distribución del teclado no cambia |
+| Captura de un atajo nuevo | Correcta (Ctrl + Mayús + K) |
+| Pausa de los atajos | No se intercepta nada |
+| Inicio con Windows | Se registra y se elimina |
+| Limpieza de texto | Correcta |
+| Coste de dibujo de la barra | 0,35–0,54 ms por fotograma |
+| Micrófonos | Omitida: el servidor no tiene |
+| Carga del modelo | 2,4 s |
+| Transcripción en español e inglés | 100 % de las palabras esperadas |
+| Liberación de memoria | 763 MB → 48 MB |
+
+Limitación: el servidor de la CI se ejecuta como administrador, así que la
+autoprueba no cubre la restricción de Windows (UIPI) que impide escribir en
+programas elevados desde uno normal; ese caso está en la comprobación manual.
 
 ## Autoprueba en un equipo con Windows
 
