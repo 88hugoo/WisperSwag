@@ -122,6 +122,41 @@ impl Shared {
     }
 }
 
+/// Acceso de solo lectura al nivel de la grabación en curso (para la barra flotante).
+#[derive(Clone)]
+pub struct LevelProbe(Arc<Shared>);
+
+impl LevelProbe {
+    /// Nivel RMS reciente (0–1, lineal).
+    pub fn level(&self) -> f32 {
+        f32::from_bits(self.0.level.load(Ordering::Relaxed))
+    }
+
+    /// Muestras capturadas hasta ahora.
+    pub fn len(&self) -> usize {
+        self.0.samples.lock().len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// El dispositivo ha fallado (p. ej. se ha desconectado).
+    pub fn has_failed(&self) -> bool {
+        self.0.failed.load(Ordering::Relaxed)
+    }
+
+    /// Copia un rango del audio capturado (transcripción incremental).
+    pub fn copy_range(&self, from: usize, to: usize) -> Vec<f32> {
+        let s = self.0.samples.lock();
+        let to = to.min(s.len());
+        if from >= to {
+            return Vec::new();
+        }
+        s[from..to].to_vec()
+    }
+}
+
 /// Resultado de una grabación.
 #[derive(Debug, Clone, Default)]
 pub struct Recording {
@@ -220,6 +255,10 @@ impl Recorder {
     /// Nivel RMS reciente (0–1, lineal).
     pub fn level(&self) -> f32 {
         f32::from_bits(self.shared.level.load(Ordering::Relaxed))
+    }
+
+    pub fn probe(&self) -> LevelProbe {
+        LevelProbe(self.shared.clone())
     }
 
     /// Pico desde la última consulta (0–1) y lo reinicia.

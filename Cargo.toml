@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
-members = ["crates/wispr-core", "crates/wispr-pill"]
-default-members = ["crates/wispr-core", "crates/wispr-pill"]
+members = ["crates/wispr-core", "crates/wispr-pill", "src-tauri"]
+default-members = ["crates/wispr-core", "crates/wispr-pill", "src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
